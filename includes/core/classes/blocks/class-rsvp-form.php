@@ -398,7 +398,12 @@ final class Rsvp_Form {
 	 * it as post meta. This schema is later used to validate form submissions
 	 * and prevent unauthorized field injection.
 	 *
+	 * The block-derived set passes through the `gatherpress_rsvp_form_schemas`
+	 * filter before it is stored, so a post whose form is defined somewhere
+	 * other than the editor keeps its schema across saves.
+	 *
 	 * @since 0.33.0
+	 * @since 0.36.0 The schemas pass through the `gatherpress_rsvp_form_schemas` filter.
 	 *
 	 * @param int $post_id The post ID being saved.
 	 *
@@ -424,6 +429,32 @@ final class Rsvp_Form {
 		// Parse blocks and extract schemas for each RSVP Form.
 		$blocks  = parse_blocks( $post->post_content );
 		$schemas = $this->extract_form_schemas_from_blocks( $blocks );
+
+		/**
+		 * Filters the RSVP form schemas stored for a post.
+		 *
+		 * The blocks in the post are the default source, and they remain the
+		 * only source when nothing filters. A consumer that composes its form
+		 * somewhere other than the editor can supply its own schemas here, or
+		 * merge them with the block-derived ones, and they survive the save
+		 * rather than being cleared as soon as the post has no RSVP Form block.
+		 *
+		 * The stored shape is a map of form ID to `array( 'fields' => array,
+		 * 'hash' => string )`, where each field carries `name`, `type`,
+		 * `required`, `label` and `placeholder`, plus `validation`, `options`
+		 * or `max_length` depending on the type. `Rsvp_Form::get_field_options()`
+		 * and the REST and POST submission handlers all read that shape, so a
+		 * schema supplied here is validated and persisted like any other.
+		 *
+		 * Returning an empty array clears the meta, which is what an editor
+		 * composed post with no RSVP Form block does today.
+		 *
+		 * @since 0.36.0
+		 *
+		 * @param array $schemas Schemas extracted from the post's blocks, keyed by form ID.
+		 * @param int   $post_id The post ID being saved.
+		 */
+		$schemas = (array) apply_filters( 'gatherpress_rsvp_form_schemas', $schemas, $post_id );
 
 		if ( ! empty( $schemas ) ) {
 			// Save schemas as post meta.

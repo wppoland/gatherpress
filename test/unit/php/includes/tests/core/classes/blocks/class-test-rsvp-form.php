@@ -452,6 +452,128 @@ class Test_Rsvp_Form extends Base {
 	}
 
 	/**
+	 * Tests save_form_schema keeps a filtered schema on a post with no form block.
+	 *
+	 * Verifies that a schema supplied through the filter survives the save,
+	 * which is what a consumer that composes its form outside the editor needs.
+	 *
+	 * @since 0.36.0
+	 * @covers ::save_form_schema
+	 *
+	 * @return void
+	 */
+	public function test_save_form_schema_keeps_a_filtered_schema(): void {
+		$instance = Rsvp_Form::get_instance();
+		$post_id  = $this->factory()->post->create(
+			array(
+				'post_type'    => Event::POST_TYPE,
+				'post_content' => '<!-- wp:paragraph --><p>No RSVP forms here</p><!-- /wp:paragraph -->',
+			)
+		);
+		$supplied = array(
+			'form_0' => array(
+				'fields' => array(
+					'dietary_needs' => array(
+						'name'     => 'dietary_needs',
+						'type'     => 'text',
+						'required' => false,
+					),
+				),
+				'hash'   => 'unit-test-hash',
+			),
+		);
+
+		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$filter = static function () use ( $supplied ): array {
+			return $supplied;
+		};
+
+		add_filter( 'gatherpress_rsvp_form_schemas', $filter );
+		$instance->save_form_schema( $post_id );
+		remove_filter( 'gatherpress_rsvp_form_schemas', $filter );
+
+		$this->assertSame(
+			$supplied,
+			get_post_meta( $post_id, 'gatherpress_rsvp_form_schemas', true ),
+			'Failed to assert that a filtered schema survives a save with no form block.'
+		);
+	}
+
+	/**
+	 * Tests save_form_schema passes the block-derived schemas to the filter.
+	 *
+	 * Verifies that a consumer can merge with what the editor produced rather
+	 * than only replace it, and that it knows which post is being saved.
+	 *
+	 * @since 0.36.0
+	 * @covers ::save_form_schema
+	 *
+	 * @return void
+	 */
+	public function test_save_form_schema_filter_receives_block_schemas(): void {
+		$instance = Rsvp_Form::get_instance();
+		$post_id  = $this->factory()->post->create(
+			array(
+				'post_type'    => Event::POST_TYPE,
+				'post_content' => '<!-- wp:gatherpress/rsvp-form -->
+					<div class="wp-block-gatherpress-rsvp-form">
+						<!-- wp:gatherpress/form-field '
+					. '{"fieldName":"custom_field","fieldType":"text","required":true} -->
+						<div class="wp-block-gatherpress-form-field"></div>
+						<!-- /wp:gatherpress/form-field -->
+					</div>
+					<!-- /wp:gatherpress/rsvp-form -->',
+			)
+		);
+		$received = array();
+
+		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$filter = static function ( array $schemas, int $filtered_post_id ) use ( &$received ): array {
+			$received = array(
+				'schemas' => $schemas,
+				'post_id' => $filtered_post_id,
+			);
+
+			$schemas['form_external'] = array(
+				'fields' => array(),
+				'hash'   => 'unit-test-hash',
+			);
+
+			return $schemas;
+		};
+
+		add_filter( 'gatherpress_rsvp_form_schemas', $filter, 10, 2 );
+		$instance->save_form_schema( $post_id );
+		remove_filter( 'gatherpress_rsvp_form_schemas', $filter, 10 );
+
+		$this->assertSame(
+			$post_id,
+			$received['post_id'],
+			'Failed to assert that the filter receives the post ID being saved.'
+		);
+		$this->assertArrayHasKey(
+			'custom_field',
+			$received['schemas']['form_0']['fields'],
+			'Failed to assert that the filter receives the block-derived schemas.'
+		);
+
+		$stored = get_post_meta( $post_id, 'gatherpress_rsvp_form_schemas', true );
+
+		$this->assertArrayHasKey(
+			'form_0',
+			$stored,
+			'Failed to assert that the block-derived schema is still stored.'
+		);
+		$this->assertArrayHasKey(
+			'form_external',
+			$stored,
+			'Failed to assert that a merged schema is stored alongside it.'
+		);
+	}
+
+	/**
 	 * Tests save_form_schema skips when user cannot edit post.
 	 *
 	 * Verifies that form schema processing is skipped when user

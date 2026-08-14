@@ -1,0 +1,4 @@
+Significance: minor
+Type: added
+
+Added a `gatherpress_rsvp_form_schemas` filter so RSVP form schemas defined outside the block editor survive a post save, instead of being cleared whenever the post carries no RSVP Form block.

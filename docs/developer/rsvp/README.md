@@ -152,6 +152,18 @@ inferring `user` from a real user ID and `email` from a valid author email when
 no term is present, so responses written by paths that don't stamp it (the open
 RSVP form) still resolve.
 
+## RSVP form schemas
+
+When a post is saved, GatherPress parses its content for `wp:gatherpress/rsvp-form`
+blocks and extracts field schemas into the `gatherpress_rsvp_form_schemas` post
+meta, which validate incoming RSVP form submissions.
+
+Integrations that compose RSVP forms outside the block editor can pass custom or
+merged schemas through the [`gatherpress_rsvp_form_schemas`](../hooks/gatherpress_rsvp_form_schemas.md)
+filter. The filter receives the block-derived schemas and the post ID being saved,
+letting custom schemas survive post saves without being cleared when no form block is
+present in the post content.
+
 ## Sitewide gating (RSVP Mode and Open RSVP)
 
 Since 0.34.0 the `rsvp_mode` setting is the master switch for the whole RSVP

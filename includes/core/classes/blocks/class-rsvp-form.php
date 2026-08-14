@@ -453,6 +453,7 @@ final class Rsvp_Form {
 		 *
 		 * @param array $schemas Schemas extracted from the post's blocks, keyed by form ID.
 		 * @param int   $post_id The post ID being saved.
+		 * @return array Schemas to store for the post, keyed by form ID.
 		 */
 		$schemas = (array) apply_filters( 'gatherpress_rsvp_form_schemas', $schemas, $post_id );
 

@@ -95,6 +95,10 @@
 
 - [`gatherpress_roles`](gatherpress_roles.md) Filter the list of roles for GatherPress.
 
+## class-rsvp-form.php
+
+- [`gatherpress_rsvp_form_schemas`](gatherpress_rsvp_form_schemas.md) Filters the RSVP form schemas stored for a post.
+
 ## class-settings.php
 
 - [`gatherpress_interactive_map_tile_attribution`](gatherpress_interactive_map_tile_attribution.md) Filters the attribution HTML rendered with the venue map.
@@ -138,6 +142,6 @@
 
 - [`gatherpress_loaded`](gatherpress_loaded.md) Fires once GatherPress has finished bootstrapping its core classes.
 
-## network-page.php
+## index.php
 
 - [`gatherpress_settings_section`](gatherpress_settings_section.md) Fires so tabs that render via the GatherPress settings section action
